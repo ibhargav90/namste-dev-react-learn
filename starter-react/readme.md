@@ -30,6 +30,32 @@ On the other hand, the defer attribute tells the browser to load the script in t
 
 In general, use async when the script doesn't depend on other parts of the page and can be executed independently. Use defer when the script needs to be executed in order and depends
 
+## Async Attribute
+
+The `async` attribute is an attribute that can be added to the `<script>` tag in HTML. When the `async` attribute is present, the browser will continue parsing the HTML document while simultaneously downloading the external JavaScript file. Once the file is downloaded, the script will be executed asynchronously, which means it won't block the rendering of the page. This is useful for non-blocking scripts that don't rely on the DOM or other scripts loaded before them.
+
+```html
+<script async src="script.js"></script>
+```
+
+## Defer Attribute
+
+The `defer` attribute is another attribute that can be added to the `<script>` tag in HTML. Similar to the `async` attribute, it allows the HTML document to continue parsing while the external JavaScript file is being downloaded. However, scripts with the `defer` attribute will be executed in the order they appear in the HTML document, but only after the document has finished parsing. This ensures that the scripts are executed in the proper order, which can be important when the scripts rely on the DOM or other scripts.
+
+```html
+<script defer src="script.js"></script>
+```
+
+## Comparison
+
+- **Execution Order**: With the `async` attribute, scripts are executed as soon as they are downloaded, regardless of the order in which they appear in the HTML document. On the other hand, the `defer` attribute ensures that scripts are executed in the order they appear, but only after the document has finished parsing.
+
+- **Dependency**: If scripts have dependencies on other scripts or the DOM, the `defer` attribute should be used to maintain the correct execution order. The `async` attribute is more suitable for independent scripts that don't rely on other scripts or the DOM.
+
+## Conclusion
+
+Understanding the `async` and `defer` attributes in HTML is important for controlling the loading and execution of external JavaScript files. Whether you choose `async` or `defer` depends on the script's dependencies and whether the execution order is critical. Properly utilizing these attributes can help optimize the loading and rendering of web pages, resulting in better user experiences.
+
 
 ## Virtual DOM
 
