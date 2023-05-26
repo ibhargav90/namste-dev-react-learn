@@ -1,85 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-
-const Logo = () => {
-  return (
-    <img
-      alt="food_villa_logo"
-      src="https://upload.wikimedia.org/wikipedia/en/1/12/Swiggy_logo.svg"
-    />
-  );
-};
-
-const NavItems = () => {
-  return (
-    <ul className="nav-items">
-      <li>item 1</li>
-      <li>item 2</li>
-      <li>item 3</li>
-      <li>cart</li>
-    </ul>
-  );
-};
-
-const Header = () => {
-  return (
-    <div className="header">
-      <Logo />
-      <NavItems />
-    </div>
-  );
-};
-
-const RestaurantCard = ({ name, cuisines, avgRating, cloudinaryImageId }) => {
-  return (
-    <section className="card">
-      <img
-        src={
-          "https://res.cloudinary.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_508,h_320,c_fill/" +
-          cloudinaryImageId
-        }
-        alt="sample image"
-      />
-      <div className="texts">
-        <h2>{name}</h2>
-        <p>{cuisines.join(", ")} </p>
-        <h4>{avgRating} star</h4>
-      </div>
-    </section>
-  );
-};
-
-const RestaurantList = () => {
-  return (
-    <main className="restaurant-list">
-      {
-        restaurantList.map((res)=> {
-          return <RestaurantCard {...res.data}/>
-        })
-      }
-    </main>
-  );
-};
-
-const Body = () => {
-  return <RestaurantList />;
-};
-
-const Footer = () => {
-  return <h4 className="footer">This is Footer</h4>;
-};
-
-const AppLayout = () => {
-  return (
-    <>
-      <Header />
-      <Body />
-      <Footer />
-    </>
-  );
-};
-
-const restaurantList = [
+export const IMG_URL =
+  "https://res.cloudinary.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_508,h_320,c_fill/";
+export const RESTAURANT_LIST = [
   {
     type: "restaurant",
     data: {
@@ -1616,6 +1537,3 @@ const restaurantList = [
     subtype: "basic",
   },
 ];
-
-const createRoot = ReactDOM.createRoot(document.getElementById("root"));
-createRoot.render(<AppLayout />);
