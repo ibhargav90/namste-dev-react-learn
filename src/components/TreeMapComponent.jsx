@@ -10,7 +10,7 @@ interface ExcelRow {
   "programme-year": string | number;
 }
 
-// TreeMapDatum type as expected by @nivo/treemap
+// Define the structure for hierarchical data compatible with Nivo's TreeMap
 interface TreeMapDatum {
   id: string;
   value?: number; // Numeric value for leaf nodes
@@ -69,12 +69,12 @@ const TreeMapComponent: React.FC = () => {
         id: department,
         children: Object.entries(locations).map(([location, rows]) => ({
           id: location,
-          value: rows.length,
+          value: rows.length, // Leaf node value based on row count
         })),
       })),
     };
 
-    setData(hierarchy);
+    setData(hierarchy); // Set hierarchical data with 'children' included
   };
 
   return (
@@ -110,7 +110,7 @@ const TreeMapComponent: React.FC = () => {
       {data ? (
         <div style={{ height: 600 }}>
           <ResponsiveTreeMap<TreeMapDatum>
-            root={data}
+            root={data} // Ensure this matches the TreeMapDatum type
             identity="id"
             value="value"
             label={(node) => `${node.id} (${node.value || 0})`}
