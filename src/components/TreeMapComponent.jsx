@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
-import * as d3 from "d3";
+import { ResponsiveTreeMap } from "@nivo/treemap";
 
 const TreeMapComponent = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(null);
   const [filterYear, setFilterYear] = useState("");
 
   const handleFileUpload = (event) => {
@@ -15,61 +15,57 @@ const TreeMapComponent = () => {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(sheet);
-        setData(jsonData);
+        formatData(jsonData);
       };
       reader.readAsBinaryString(file);
     }
   };
 
-  const createTreeMap = () => {
+  const formatData = (jsonData) => {
+    // Filter data if a year is selected
     const filteredData = filterYear
-      ? data.filter((row) => row["programme-year"] === filterYear)
-      : data;
+      ? jsonData.filter((row) => row["programme-year"] === filterYear)
+      : jsonData;
 
-    // Prepare the hierarchical data structure
-    const hierarchy = d3
-      .hierarchy({ children: filteredData }, (d) =>
-        d.children || d.department || d.location
-      )
-      .sum(() => 1);
+    // Build a hierarchical data structure
+    const hierarchy = {
+      name: "root",
+      children: [],
+    };
 
-    const width = 800;
-    const height = 600;
+    const groupedData = filteredData.reduce((acc, row) => {
+      const department = row.department || "Unknown";
+      const location = row.location || "Unknown";
 
-    const treemap = d3.treemap().size([width, height]).padding(1);
-    const root = treemap(hierarchy);
+      if (!acc[department]) {
+        acc[department] = {};
+      }
 
-    const svg = d3
-      .select("#tree-map")
-      .attr("width", width)
-      .attr("height", height);
+      if (!acc[department][location]) {
+        acc[department][location] = [];
+      }
 
-    svg.selectAll("*").remove(); // Clear previous renders
+      acc[department][location].push(row);
+      return acc;
+    }, {});
 
-    svg
-      .selectAll("rect")
-      .data(root.leaves())
-      .enter()
-      .append("rect")
-      .attr("x", (d) => d.x0)
-      .attr("y", (d) => d.y0)
-      .attr("width", (d) => d.x1 - d.x0)
-      .attr("height", (d) => d.y1 - d.y0)
-      .attr("fill", "steelblue")
-      .on("mouseover", (e, d) => {
-        console.log(d.data);
+    Object.entries(groupedData).forEach(([department, locations]) => {
+      const departmentNode = {
+        name: department,
+        children: [],
+      };
+
+      Object.entries(locations).forEach(([location, rows]) => {
+        departmentNode.children.push({
+          name: location,
+          value: rows.length,
+        });
       });
 
-    svg
-      .selectAll("text")
-      .data(root.leaves())
-      .enter()
-      .append("text")
-      .attr("x", (d) => d.x0 + 5)
-      .attr("y", (d) => d.y0 + 20)
-      .text((d) => d.data.name)
-      .attr("font-size", "12px")
-      .attr("fill", "white");
+      hierarchy.children.push(departmentNode);
+    });
+
+    setData(hierarchy);
   };
 
   return (
@@ -78,14 +74,33 @@ const TreeMapComponent = () => {
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
       <select onChange={(e) => setFilterYear(e.target.value)} value={filterYear}>
         <option value="">All Years</option>
-        {[...new Set(data.map((d) => d["programme-year"]))].map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
+        {/* Add available years dynamically */}
+        {data &&
+          [...new Set(data.children.flatMap((d) => d.children.map((c) => c.name)))]
+            .sort()
+            .map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
       </select>
-      <button onClick={createTreeMap}>Generate Tree Map</button>
-      <svg id="tree-map"></svg>
+      {data ? (
+        <div style={{ height: 600 }}>
+          <ResponsiveTreeMap
+            root={data}
+            identity="name"
+            value="value"
+            label={(node) => `${node.id} (${node.value})`}
+            margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            colors={{ scheme: "nivo" }}
+            labelSkipSize={12}
+            borderColor={{ from: "color", modifiers: [["darker", 0.5]] }}
+            animate={true}
+          />
+        </div>
+      ) : (
+        <p>Upload an Excel file to generate the tree map.</p>
+      )}
     </div>
   );
 };
