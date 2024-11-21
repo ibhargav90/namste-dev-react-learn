@@ -63,14 +63,6 @@ const DepartmentTreeMap: React.FC = () => {
   }, [data, yearFilter]);
 
   // Build tree data for d3.js based on the filtered data
-  useEffect(() => {
-    if (filteredData.length > 0) {
-      const orgTree = buildOrgTree(filteredData);
-      setTreeData(orgTree);
-    }
-  }, [filteredData]);
-
-  // Helper function to build hierarchical tree structure
   const buildOrgTree = (filteredData: Data[]): OrgNode => {
     const root: OrgNode = { name: 'Root', location: '', department: '', programYear: '', children: [] };
     
@@ -107,6 +99,13 @@ const DepartmentTreeMap: React.FC = () => {
   };
 
   // Render the tree using d3.js
+  useEffect(() => {
+    if (filteredData.length > 0) {
+      const orgTree = buildOrgTree(filteredData);
+      setTreeData(orgTree);
+    }
+  }, [filteredData]);
+
   useEffect(() => {
     if (treeData && svgRef.current) {
       const width = svgRef.current.clientWidth;
