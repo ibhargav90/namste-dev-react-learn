@@ -98,7 +98,7 @@ const OrganizationChart: React.FC = () => {
     const height = svgRef.current.clientHeight;
 
     const root = d3.hierarchy(treeData);
-    const treeLayout = d3.tree<OrgNode>().size([height, width - 50]); // Adjusted width for margins
+    const treeLayout = d3.tree<OrgNode>().size([width, height - 100]); // Adjusted height for margins
     const tree = treeLayout(root);
 
     const nodes = tree.descendants();
@@ -109,9 +109,9 @@ const OrganizationChart: React.FC = () => {
       .data(links)
       .join('path')
       .attr('class', 'link')
-      .attr('d', d3.linkHorizontal<d3.HierarchyPointLink<OrgNode>, d3.HierarchyPointNode<OrgNode>>()
-        .x(d => d.y)
-        .y(d => d.x))
+      .attr('d', d3.linkVertical<d3.HierarchyPointLink<OrgNode>, d3.HierarchyPointNode<OrgNode>>()
+        .x(d => d.x) // x for horizontal position
+        .y(d => d.y)) // y for vertical position
       .attr('fill', 'none')
       .attr('stroke', '#ccc')
       .attr('stroke-width', 2);
@@ -121,7 +121,7 @@ const OrganizationChart: React.FC = () => {
       .data(nodes)
       .join('g')
       .attr('class', 'node')
-      .attr('transform', d => `translate(${d.y},${d.x})`);
+      .attr('transform', d => `translate(${d.x},${d.y})`);
 
     // Add images to nodes
     nodeGroup.append('image')
@@ -177,6 +177,8 @@ const OrganizationChart: React.FC = () => {
 };
 
 export default OrganizationChart;
+
+
 .chart-container {
   display: flex;
   flex-direction: column;
