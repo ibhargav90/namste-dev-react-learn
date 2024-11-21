@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { ResponsiveTreeMap } from "@nivo/treemap";
 
-// Define the structure of each row in the Excel sheet
+// Define Excel row structure
 interface ExcelRow {
   name: string;
   location: string;
@@ -10,18 +10,18 @@ interface ExcelRow {
   "programme-year": string | number;
 }
 
-// Define the structure for hierarchical data
-interface TreeNode {
+// TreeMapDatum type as expected by @nivo/treemap
+interface TreeMapDatum {
   id: string;
-  value?: number;
-  children?: TreeNode[];
+  value?: number; // Numeric value for leaf nodes
+  children?: TreeMapDatum[]; // Child nodes
 }
 
 const TreeMapComponent: React.FC = () => {
-  const [data, setData] = useState<TreeNode | null>(null);
+  const [data, setData] = useState<TreeMapDatum | null>(null);
   const [filterYear, setFilterYear] = useState<string>("");
 
-  // Handle file upload and process Excel file
+  // File upload handler
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (file) {
@@ -39,13 +39,13 @@ const TreeMapComponent: React.FC = () => {
     }
   };
 
-  // Format the JSON data into hierarchical structure
+  // Convert flat Excel data to hierarchical TreeMapDatum
   const formatData = (jsonData: ExcelRow[]): void => {
     const filteredData = filterYear
       ? jsonData.filter((row) => row["programme-year"].toString() === filterYear)
       : jsonData;
 
-    const hierarchy: TreeNode = {
+    const hierarchy: TreeMapDatum = {
       id: "root",
       children: Object.entries(
         filteredData.reduce<Record<string, Record<string, ExcelRow[]>>>(
@@ -80,10 +80,10 @@ const TreeMapComponent: React.FC = () => {
   return (
     <div>
       <h2>Tree Map Viewer</h2>
-      {/* File upload input */}
+      {/* File upload */}
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
 
-      {/* Dropdown for filtering by programme year */}
+      {/* Filter dropdown */}
       <select
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
           setFilterYear(e.target.value)
@@ -109,7 +109,7 @@ const TreeMapComponent: React.FC = () => {
       {/* Tree map visualization */}
       {data ? (
         <div style={{ height: 600 }}>
-          <ResponsiveTreeMap
+          <ResponsiveTreeMap<TreeMapDatum>
             root={data}
             identity="id"
             value="value"
