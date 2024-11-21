@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { ResponsiveTreeMap } from "@nivo/treemap";
 
+// Define the structure of each row in the Excel sheet
 interface ExcelRow {
   name: string;
   location: string;
@@ -9,16 +10,18 @@ interface ExcelRow {
   "programme-year": string | number;
 }
 
+// Define the structure for hierarchical data
 interface TreeNode {
-  name: string;
-  children?: TreeNode[];
+  id: string;
   value?: number;
+  children?: TreeNode[];
 }
 
 const TreeMapComponent: React.FC = () => {
   const [data, setData] = useState<TreeNode | null>(null);
   const [filterYear, setFilterYear] = useState<string>("");
 
+  // Handle file upload and process Excel file
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (file) {
@@ -36,50 +39,40 @@ const TreeMapComponent: React.FC = () => {
     }
   };
 
+  // Format the JSON data into hierarchical structure
   const formatData = (jsonData: ExcelRow[]): void => {
     const filteredData = filterYear
       ? jsonData.filter((row) => row["programme-year"].toString() === filterYear)
       : jsonData;
 
     const hierarchy: TreeNode = {
-      name: "root",
-      children: [],
-    };
+      id: "root",
+      children: Object.entries(
+        filteredData.reduce<Record<string, Record<string, ExcelRow[]>>>(
+          (acc, row) => {
+            const department = row.department || "Unknown";
+            const location = row.location || "Unknown";
 
-    const groupedData = filteredData.reduce<Record<string, Record<string, ExcelRow[]>>>(
-      (acc, row) => {
-        const department = row.department || "Unknown";
-        const location = row.location || "Unknown";
+            if (!acc[department]) {
+              acc[department] = {};
+            }
+            if (!acc[department][location]) {
+              acc[department][location] = [];
+            }
 
-        if (!acc[department]) {
-          acc[department] = {};
-        }
-
-        if (!acc[department][location]) {
-          acc[department][location] = [];
-        }
-
-        acc[department][location].push(row);
-        return acc;
-      },
-      {}
-    );
-
-    Object.entries(groupedData).forEach(([department, locations]) => {
-      const departmentNode: TreeNode = {
-        name: department,
-        children: [],
-      };
-
-      Object.entries(locations).forEach(([location, rows]) => {
-        departmentNode.children!.push({
-          name: location,
+            acc[department][location].push(row);
+            return acc;
+          },
+          {}
+        )
+      ).map(([department, locations]) => ({
+        id: department,
+        children: Object.entries(locations).map(([location, rows]) => ({
+          id: location,
           value: rows.length,
-        });
-      });
-
-      hierarchy.children!.push(departmentNode);
-    });
+        })),
+      })),
+    };
 
     setData(hierarchy);
   };
@@ -87,11 +80,10 @@ const TreeMapComponent: React.FC = () => {
   return (
     <div>
       <h2>Tree Map Viewer</h2>
-      <input
-        type="file"
-        accept=".xlsx, .xls"
-        onChange={handleFileUpload}
-      />
+      {/* File upload input */}
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+
+      {/* Dropdown for filtering by programme year */}
       <select
         onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
           setFilterYear(e.target.value)
@@ -99,9 +91,13 @@ const TreeMapComponent: React.FC = () => {
         value={filterYear}
       >
         <option value="">All Years</option>
-        {/* Add available years dynamically */}
+        {/* Add unique programme years dynamically */}
         {data?.children &&
-          [...new Set(data.children.flatMap((d) => d.children?.map((c) => c.name)))]
+          [...new Set(
+            data.children.flatMap((department) =>
+              department.children?.map((location) => location.id)
+            )
+          )]
             .sort()
             .map((year) => (
               <option key={year} value={year}>
@@ -109,13 +105,15 @@ const TreeMapComponent: React.FC = () => {
               </option>
             ))}
       </select>
+
+      {/* Tree map visualization */}
       {data ? (
         <div style={{ height: 600 }}>
           <ResponsiveTreeMap
             root={data}
-            identity="name"
+            identity="id"
             value="value"
-            label={(node) => `${node.id} (${node.value})`}
+            label={(node) => `${node.id} (${node.value || 0})`}
             margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
             colors={{ scheme: "nivo" }}
             labelSkipSize={12}
