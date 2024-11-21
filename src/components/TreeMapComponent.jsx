@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import * as d3 from 'd3';
-import './OrganizationChart.css'; // Add CSS for styling
+import './OrganizationChart.css';
 
 interface Data {
   name: string;
@@ -16,7 +16,7 @@ interface OrgNode {
   location: string;
   department: string;
   programYear: string;
-  image?: string; // Optional image URL for avatars
+  image?: string;
   children?: OrgNode[];
 }
 
@@ -26,7 +26,7 @@ const OrganizationChart: React.FC = () => {
   const [yearFilter, setYearFilter] = useState<string>('');
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // Parse the Excel file
+  // Parse Excel File
   const parseExcelFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -46,7 +46,7 @@ const OrganizationChart: React.FC = () => {
     }
   };
 
-  // Filter data based on selected year
+  // Filter data based on year
   useEffect(() => {
     if (yearFilter) {
       setFilteredData(data.filter(item => item.programYear === yearFilter));
@@ -55,7 +55,7 @@ const OrganizationChart: React.FC = () => {
     }
   }, [data, yearFilter]);
 
-  // Build hierarchical tree structure
+  // Build hierarchical tree data
   const buildTreeData = (): OrgNode | null => {
     if (!filteredData.length) return null;
 
@@ -77,7 +77,7 @@ const OrganizationChart: React.FC = () => {
         location: item.location,
         department: item.department,
         programYear: item.programYear,
-        image: item.image || '', // Optional image
+        image: item.image || '',
         children: [],
       });
     });
@@ -98,7 +98,7 @@ const OrganizationChart: React.FC = () => {
     const height = svgRef.current.clientHeight;
 
     const root = d3.hierarchy(treeData);
-    const treeLayout = d3.tree<OrgNode>().size([height, width - 200]);
+    const treeLayout = d3.tree<OrgNode>().size([height, width - 50]); // Adjusted width for margins
     const tree = treeLayout(root);
 
     const nodes = tree.descendants();
@@ -125,7 +125,7 @@ const OrganizationChart: React.FC = () => {
 
     // Add images to nodes
     nodeGroup.append('image')
-      .attr('xlink:href', d => d.data.image || 'https://via.placeholder.com/50') // Default placeholder if no image
+      .attr('xlink:href', d => d.data.image || 'https://via.placeholder.com/50')
       .attr('x', -25)
       .attr('y', -60)
       .attr('width', 50)
@@ -161,7 +161,7 @@ const OrganizationChart: React.FC = () => {
   }, [filteredData]);
 
   return (
-    <div>
+    <div className="chart-container">
       <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
       <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
         <option value="">All Years</option>
@@ -169,15 +169,30 @@ const OrganizationChart: React.FC = () => {
           <option key={year} value={year}>{year}</option>
         ))}
       </select>
-      <div style={{ width: '100%', height: '600px', overflow: 'hidden' }}>
-        <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
+      <div className="chart-wrapper">
+        <svg ref={svgRef} />
       </div>
     </div>
   );
 };
 
 export default OrganizationChart;
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
+.chart-wrapper {
+  display: flex;
+  flex: 1; /* Allow the chart to grow */
+  overflow: hidden; /* Prevent content from overflowing */
+}
+
+svg {
+  width: 100%; /* Make the SVG take full width of its parent */
+  height: 100%; /* Make the SVG take full height of its parent */
+}
 
 .link {
   fill: none;
@@ -195,29 +210,6 @@ export default OrganizationChart;
   font-family: Arial, sans-serif;
   pointer-events: none;
 }
-
-.chart-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.svg-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 
 .node image {
   clip-path: circle(25px at center);
