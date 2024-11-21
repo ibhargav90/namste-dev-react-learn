@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import * as d3 from 'd3';
-import './OrganizationChart.css';
+import './eep-alumni.css';
 
 interface Data {
   name: string;
@@ -20,7 +20,7 @@ interface OrgNode {
   children?: OrgNode[];
 }
 
-const OrganizationChart: React.FC = () => {
+const EepAlumni: React.FC = () => {
   const [data, setData] = useState<Data[]>([]);
   const [filteredData, setFilteredData] = useState<Data[]>([]);
   const [yearFilter, setYearFilter] = useState<string>('');
@@ -98,11 +98,15 @@ const OrganizationChart: React.FC = () => {
     const height = svgRef.current.clientHeight;
 
     const root = d3.hierarchy(treeData);
-    const treeLayout = d3.tree<OrgNode>().size([width, height - 100]); // Adjusted height for margins
+    const treeLayout = d3.tree<OrgNode>().size([width, height - 150]); // Adjusted height for spacing
     const tree = treeLayout(root);
 
     const nodes = tree.descendants();
     const links = tree.links();
+
+    // Adjust spacing between nodes
+    const nodeHeight = 100; // Minimum vertical space between nodes
+    nodes.forEach(node => (node.y = node.depth * nodeHeight));
 
     // Create links
     svg.selectAll('.link')
@@ -162,13 +166,15 @@ const OrganizationChart: React.FC = () => {
 
   return (
     <div className="chart-container">
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
-      <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
-        <option value="">All Years</option>
-        {[...new Set(data.map(item => item.programYear))].map(year => (
-          <option key={year} value={year}>{year}</option>
-        ))}
-      </select>
+      <div className="controls">
+        <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+        <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+          <option value="">All Years</option>
+          {[...new Set(data.map(item => item.programYear))].map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </div>
       <div className="chart-wrapper">
         <svg ref={svgRef} />
       </div>
@@ -176,24 +182,41 @@ const OrganizationChart: React.FC = () => {
   );
 };
 
-export default OrganizationChart;
+export default EepAlumni;
+
 
 
 .chart-container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #f8f8f8;
+}
+
+.controls select {
+  width: auto;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 
 .chart-wrapper {
   display: flex;
-  flex: 1; /* Allow the chart to grow */
-  overflow: hidden; /* Prevent content from overflowing */
+  flex: 1;
+  overflow: hidden; /* Prevent overflow */
 }
 
 svg {
-  width: 100%; /* Make the SVG take full width of its parent */
-  height: 100%; /* Make the SVG take full height of its parent */
+  width: 100%; /* Ensure SVG fits within parent */
+  height: 100%;
 }
 
 .link {
