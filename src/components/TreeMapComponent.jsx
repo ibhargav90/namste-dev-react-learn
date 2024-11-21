@@ -1,131 +1,169 @@
-import React, { useState } from "react";
-import * as XLSX from "xlsx";
-import { ResponsiveTreeMap } from "@nivo/treemap";
+import React, { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
+import * as d3 from 'd3';
 
-// Define Excel row structure
-interface ExcelRow {
+interface Data {
   name: string;
   location: string;
   department: string;
-  "programme-year": string | number;
+  programYear: string;
 }
 
-// Define the structure for hierarchical data compatible with Nivo's TreeMap
-interface TreeMapDatum {
-  id: string;
-  value?: number; // Numeric value for leaf nodes
-  children?: TreeMapDatum[]; // Child nodes
+interface OrgNode {
+  name: string;
+  location: string;
+  department: string;
+  programYear: string;
+  children?: OrgNode[];
 }
 
-const TreeMapComponent: React.FC = () => {
-  const [data, setData] = useState<TreeMapDatum | null>(null);
-  const [filterYear, setFilterYear] = useState<string>("");
+const DepartmentTreeMap: React.FC = () => {
+  const [data, setData] = useState<Data[]>([]);
+  const [filteredData, setFilteredData] = useState<Data[]>([]);
+  const [yearFilter, setYearFilter] = useState<string>('');
+  const [treeData, setTreeData] = useState<OrgNode | null>(null);
 
-  // File upload handler
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // Function to parse the Excel file and extract data
+  const parseExcelFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result as string;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0]; // Assuming the first sheet
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      setData(jsonData as Data[]); // Set data state once parsing is done
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // Handle file input change
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        if (e.target?.result) {
-          const workbook = XLSX.read(e.target.result, { type: "binary" });
-          const sheetName = workbook.SheetNames[0];
-          const sheet = workbook.Sheets[sheetName];
-          const jsonData: ExcelRow[] = XLSX.utils.sheet_to_json(sheet);
-          formatData(jsonData);
-        }
-      };
-      reader.readAsBinaryString(file);
+      parseExcelFile(file);
     }
   };
 
-  // Convert flat Excel data to hierarchical TreeMapDatum
-  const formatData = (jsonData: ExcelRow[]): void => {
-    const filteredData = filterYear
-      ? jsonData.filter((row) => row["programme-year"].toString() === filterYear)
-      : jsonData;
+  // Filter data based on the selected year
+  useEffect(() => {
+    if (yearFilter) {
+      setFilteredData(data.filter(item => item.programYear === yearFilter));
+    } else {
+      setFilteredData(data);
+    }
+  }, [data, yearFilter]);
 
-    const hierarchy: TreeMapDatum = {
-      id: "root",
-      children: Object.entries(
-        filteredData.reduce<Record<string, Record<string, ExcelRow[]>>>(
-          (acc, row) => {
-            const department = row.department || "Unknown";
-            const location = row.location || "Unknown";
+  // Build tree data for d3.js based on the filtered data
+  useEffect(() => {
+    if (filteredData.length > 0) {
+      const orgTree = buildOrgTree(filteredData);
+      setTreeData(orgTree);
+    }
+  }, [filteredData]);
 
-            if (!acc[department]) {
-              acc[department] = {};
-            }
-            if (!acc[department][location]) {
-              acc[department][location] = [];
-            }
+  // Helper function to build hierarchical tree structure
+  const buildOrgTree = (filteredData: Data[]): OrgNode => {
+    const root: OrgNode = { name: 'Root', location: '', department: '', programYear: '', children: [] };
+    
+    // Group nodes by department
+    const departmentMap: { [key: string]: OrgNode } = {};
 
-            acc[department][location].push(row);
-            return acc;
-          },
-          {}
-        )
-      ).map(([department, locations]) => ({
-        id: department,
-        children: Object.entries(locations).map(([location, rows]) => ({
-          id: location,
-          value: rows.length, // Leaf node value based on row count
-        })),
-      })),
-    };
+    filteredData.forEach(item => {
+      const { department, location, name, programYear } = item;
+      const nodeId = `${department}-${location}-${name}`;
+      
+      if (!departmentMap[department]) {
+        departmentMap[department] = {
+          name: department,
+          location: '',
+          department,
+          programYear: '',
+          children: [],
+        };
+      }
 
-    setData(hierarchy); // Set hierarchical data with 'children' included
+      departmentMap[department].children?.push({
+        name,
+        location,
+        department,
+        programYear,
+        children: [],
+      });
+    });
+
+    // Add departments to root
+    Object.values(departmentMap).forEach(department => root.children?.push(department));
+
+    return root;
   };
+
+  // Render the tree using d3.js
+  useEffect(() => {
+    if (treeData && svgRef.current) {
+      const width = svgRef.current.clientWidth;
+      const height = svgRef.current.clientHeight;
+
+      const root = d3.hierarchy(treeData);
+      const treeLayout = d3.tree().size([height, width - 160]);
+
+      treeLayout(root);
+
+      const svg = d3.select(svgRef.current)
+        .attr('width', width)
+        .attr('height', height);
+
+      const nodes = svg.selectAll('.node')
+        .data(root.descendants())
+        .join('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+      nodes.append('circle')
+        .attr('r', 10)
+        .style('fill', '#69b3a2');
+
+      nodes.append('text')
+        .attr('dx', 12)
+        .attr('dy', 3)
+        .text(d => d.data.name);
+
+      const links = svg.selectAll('.link')
+        .data(root.links())
+        .join('line')
+        .attr('class', 'link')
+        .attr('x1', d => d.source.y)
+        .attr('y1', d => d.source.x)
+        .attr('x2', d => d.target.y)
+        .attr('y2', d => d.target.x)
+        .style('stroke', '#ccc')
+        .style('stroke-width', 2);
+    }
+  }, [treeData]);
 
   return (
     <div>
-      <h2>Tree Map Viewer</h2>
-      {/* File upload */}
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+      {/* File input for uploading the Excel file */}
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
 
-      {/* Filter dropdown */}
-      <select
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-          setFilterYear(e.target.value)
-        }
-        value={filterYear}
-      >
-        <option value="">All Years</option>
-        {/* Add unique programme years dynamically */}
-        {data?.children &&
-          [...new Set(
-            data.children.flatMap((department) =>
-              department.children?.map((location) => location.id)
-            )
-          )]
-            .sort()
-            .map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
+      {/* Dropdown to filter by year */}
+      <select onChange={(e) => setYearFilter(e.target.value)} value={yearFilter}>
+        <option value="">Select Year</option>
+        {Array.from(new Set(data.map(item => item.programYear))).map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
       </select>
 
-      {/* Tree map visualization */}
-      {data ? (
-        <div style={{ height: 600 }}>
-          <ResponsiveTreeMap<TreeMapDatum>
-            root={data} // Ensure this matches the TreeMapDatum type
-            identity="id"
-            value="value"
-            label={(node) => `${node.id} (${node.value || 0})`}
-            margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
-            colors={{ scheme: "nivo" }}
-            labelSkipSize={12}
-            borderColor={{ from: "color", modifiers: [["darker", 0.5]] }}
-            animate={true}
-          />
-        </div>
-      ) : (
-        <p>Upload an Excel file to generate the tree map.</p>
-      )}
+      {/* SVG container for D3 tree */}
+      <div style={{ marginTop: '20px', height: '600px', width: '100%' }}>
+        <svg ref={svgRef} />
+      </div>
     </div>
   );
 };
 
-export default TreeMapComponent;
+export default DepartmentTreeMap;
