@@ -196,6 +196,29 @@ export default OrganizationChart;
   pointer-events: none;
 }
 
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.svg-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+
 .node image {
   clip-path: circle(25px at center);
 }
