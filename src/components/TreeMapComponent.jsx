@@ -2,67 +2,83 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { ResponsiveTreeMap } from "@nivo/treemap";
 
-const TreeMapComponent = () => {
-  const [data, setData] = useState(null);
-  const [filterYear, setFilterYear] = useState("");
+interface ExcelRow {
+  name: string;
+  location: string;
+  department: string;
+  "programme-year": string | number;
+}
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+interface TreeNode {
+  name: string;
+  children?: TreeNode[];
+  value?: number;
+}
+
+const TreeMapComponent: React.FC = () => {
+  const [data, setData] = useState<TreeNode | null>(null);
+  const [filterYear, setFilterYear] = useState<string>("");
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const workbook = XLSX.read(e.target.result, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-        formatData(jsonData);
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        if (e.target?.result) {
+          const workbook = XLSX.read(e.target.result, { type: "binary" });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData: ExcelRow[] = XLSX.utils.sheet_to_json(sheet);
+          formatData(jsonData);
+        }
       };
       reader.readAsBinaryString(file);
     }
   };
 
-  const formatData = (jsonData) => {
-    // Filter data if a year is selected
+  const formatData = (jsonData: ExcelRow[]): void => {
     const filteredData = filterYear
-      ? jsonData.filter((row) => row["programme-year"] === filterYear)
+      ? jsonData.filter((row) => row["programme-year"].toString() === filterYear)
       : jsonData;
 
-    // Build a hierarchical data structure
-    const hierarchy = {
+    const hierarchy: TreeNode = {
       name: "root",
       children: [],
     };
 
-    const groupedData = filteredData.reduce((acc, row) => {
-      const department = row.department || "Unknown";
-      const location = row.location || "Unknown";
+    const groupedData = filteredData.reduce<Record<string, Record<string, ExcelRow[]>>>(
+      (acc, row) => {
+        const department = row.department || "Unknown";
+        const location = row.location || "Unknown";
 
-      if (!acc[department]) {
-        acc[department] = {};
-      }
+        if (!acc[department]) {
+          acc[department] = {};
+        }
 
-      if (!acc[department][location]) {
-        acc[department][location] = [];
-      }
+        if (!acc[department][location]) {
+          acc[department][location] = [];
+        }
 
-      acc[department][location].push(row);
-      return acc;
-    }, {});
+        acc[department][location].push(row);
+        return acc;
+      },
+      {}
+    );
 
     Object.entries(groupedData).forEach(([department, locations]) => {
-      const departmentNode = {
+      const departmentNode: TreeNode = {
         name: department,
         children: [],
       };
 
       Object.entries(locations).forEach(([location, rows]) => {
-        departmentNode.children.push({
+        departmentNode.children!.push({
           name: location,
           value: rows.length,
         });
       });
 
-      hierarchy.children.push(departmentNode);
+      hierarchy.children!.push(departmentNode);
     });
 
     setData(hierarchy);
@@ -71,12 +87,21 @@ const TreeMapComponent = () => {
   return (
     <div>
       <h2>Tree Map Viewer</h2>
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-      <select onChange={(e) => setFilterYear(e.target.value)} value={filterYear}>
+      <input
+        type="file"
+        accept=".xlsx, .xls"
+        onChange={handleFileUpload}
+      />
+      <select
+        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+          setFilterYear(e.target.value)
+        }
+        value={filterYear}
+      >
         <option value="">All Years</option>
         {/* Add available years dynamically */}
-        {data &&
-          [...new Set(data.children.flatMap((d) => d.children.map((c) => c.name)))]
+        {data?.children &&
+          [...new Set(data.children.flatMap((d) => d.children?.map((c) => c.name)))]
             .sort()
             .map((year) => (
               <option key={year} value={year}>
