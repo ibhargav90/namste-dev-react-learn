@@ -123,6 +123,15 @@ const OrganizationChart: React.FC = () => {
       .attr('class', 'node')
       .attr('transform', d => `translate(${d.y},${d.x})`);
 
+    // Add images to nodes
+    nodeGroup.append('image')
+      .attr('xlink:href', d => d.data.image || 'https://via.placeholder.com/50') // Default placeholder if no image
+      .attr('x', -25)
+      .attr('y', -60)
+      .attr('width', 50)
+      .attr('height', 50)
+      .attr('clip-path', 'circle(25px at 25px 25px)');
+
     // Add rectangles for each node
     nodeGroup.append('rect')
       .attr('width', 140)
@@ -136,7 +145,7 @@ const OrganizationChart: React.FC = () => {
 
     // Add names inside rectangles
     nodeGroup.append('text')
-      .attr('dy', 0)
+      .attr('dy', -5)
       .attr('text-anchor', 'middle')
       .style('font-size', '12px')
       .style('fill', '#333')
@@ -144,7 +153,7 @@ const OrganizationChart: React.FC = () => {
 
     // Add role or department below name
     nodeGroup.append('text')
-      .attr('dy', 15)
+      .attr('dy', 10)
       .attr('text-anchor', 'middle')
       .style('font-size', '10px')
       .style('fill', '#666')
@@ -170,7 +179,6 @@ const OrganizationChart: React.FC = () => {
 export default OrganizationChart;
 
 
-
 .link {
   fill: none;
   stroke: #ccc;
@@ -188,7 +196,6 @@ export default OrganizationChart;
   pointer-events: none;
 }
 
-.node text:nth-child(1) {
-  font-weight: bold;
+.node image {
+  clip-path: circle(25px at center);
 }
-
