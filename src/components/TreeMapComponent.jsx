@@ -168,3 +168,27 @@ const OrganizationChart: React.FC = () => {
 };
 
 export default OrganizationChart;
+
+
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 2px;
+}
+
+.node rect {
+  fill: #f9f9f9;
+  stroke: #ccc;
+  stroke-width: 1px;
+}
+
+.node text {
+  font-family: Arial, sans-serif;
+  pointer-events: none;
+}
+
+.node text:nth-child(1) {
+  font-weight: bold;
+}
+
