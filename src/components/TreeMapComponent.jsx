@@ -24,6 +24,7 @@ const EepAlumni: React.FC = () => {
   const [data, setData] = useState<Data[]>([]);
   const [filteredData, setFilteredData] = useState<Data[]>([]);
   const [yearFilter, setYearFilter] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('All Departments');
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   // Parse Excel File
@@ -46,14 +47,15 @@ const EepAlumni: React.FC = () => {
     }
   };
 
-  // Filter data based on year
+  // Filter data based on year and department
   useEffect(() => {
-    if (yearFilter) {
-      setFilteredData(data.filter(item => item.programYear === yearFilter));
-    } else {
-      setFilteredData(data);
-    }
-  }, [data, yearFilter]);
+    const filtered = data.filter(
+      (item) =>
+        (yearFilter === '' || item.programYear === yearFilter) &&
+        (departmentFilter === 'All Departments' || item.department === departmentFilter)
+    );
+    setFilteredData(filtered);
+  }, [data, yearFilter, departmentFilter]);
 
   // Build hierarchical tree data
   const buildTreeData = (): OrgNode | null => {
@@ -174,6 +176,12 @@ const EepAlumni: React.FC = () => {
             <option key={year} value={year}>{year}</option>
           ))}
         </select>
+        <select value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
+          <option>All Departments</option>
+          {[...new Set(data.map(item => item.department))].map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
       </div>
       <div className="chart-wrapper">
         <svg ref={svgRef} />
@@ -183,58 +191,3 @@ const EepAlumni: React.FC = () => {
 };
 
 export default EepAlumni;
-
-.chart-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 10px;
-  background-color: #f8f8f8;
-}
-
-.controls select {
-  width: auto;
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.chart-wrapper {
-  display: flex;
-  flex: 1;
-  overflow: hidden; /* Prevent overflow */
-}
-
-svg {
-  width: 100%; /* Ensure SVG fits within parent */
-  height: 100%;
-}
-
-.link {
-  fill: none;
-  stroke: #ccc;
-  stroke-width: 2px;
-}
-
-.node rect {
-  fill: #f9f9f9;
-  stroke: #ccc;
-  stroke-width: 1px;
-}
-
-.node text {
-  font-family: Arial, sans-serif;
-  pointer-events: none;
-}
-
-.node image {
-  clip-path: circle(25px at center);
-}
-
